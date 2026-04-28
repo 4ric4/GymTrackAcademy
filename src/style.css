@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg:          #0C0C14;
+    --surface:     #131320;
+    --surface2:    #1A1A2E;
+    --surface3:    #22223A;
+    --border:      rgba(255,255,255,0.07);
+    --accent:      #FF4D1C;
+    --accent-dim:  rgba(255,77,28,0.12);
+    --accent-glow: rgba(255,77,28,0.3);
+    --text:        #FFFFFF;
+    --text2:       rgba(255,255,255,0.55);
+    --text3:       rgba(255,255,255,0.28);
+    --warn:        #F59E0B;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 9999px; }
+}
+
+@layer components {
+  .gym-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px;
+  }
+  .gym-card-glow {
+    background: var(--surface);
+    border: 1px solid var(--accent-glow);
+    border-radius: 20px;
+    padding: 16px;
+  }
+  .gym-glass {
+    background: rgba(13,13,32,0.85);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+  }
+  .btn-accent {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    padding: 14px 24px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 20px rgba(255,77,28,0.35);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-accent:active { transform: scale(0.97); }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 13px 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-ghost:active { transform: scale(0.97); }
+  .gym-tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .gym-tag.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .gym-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: var(--text);
+  }
+  .gym-label {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text2);
+  }
+  .screen-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .screen-scroll::-webkit-scrollbar { display: none; }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .font-title { font-family: 'Space Grotesk', sans-serif; }
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.slide-up-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.slide-up-leave-active { transition: all 0.2s ease; }
+.slide-up-enter-from { transform: translateY(100%); opacity: 0; }
+.slide-up-leave-to { transform: translateY(100%); opacity: 0; }
+
+.scale-enter-active { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.scale-leave-active { transition: all 0.15s ease; }
+.scale-enter-from { transform: scale(0.9); opacity: 0; }
+.scale-leave-to { transform: scale(0.9); opacity: 0; }

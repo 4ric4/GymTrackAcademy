@@ -1,0 +1,71 @@
+<template>
+  <div class="min-h-screen flex flex-col relative overflow-hidden" style="background: var(--bg)">
+    <!-- Grid lines background -->
+    <div class="absolute inset-0 pointer-events-none"
+      style="background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.6"></div>
+
+    <!-- Radial glow -->
+    <div class="absolute pointer-events-none"
+      style="top: 18%; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; background: radial-gradient(circle, rgba(255,77,28,0.18) 0%, transparent 70%)"></div>
+
+    <!-- Center content -->
+    <div class="flex-1 flex flex-col items-center justify-center px-8 gap-6 relative z-10">
+      <!-- Logo -->
+      <div class="w-20 h-20 rounded-3xl flex items-center justify-center"
+        style="background: var(--accent); box-shadow: 0 0 48px rgba(255,77,28,0.55)">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <path d="M6 22H10M34 22H38M10 22C10 15.373 15.373 10 22 10C28.627 10 34 15.373 34 22C34 28.627 28.627 34 22 34C15.373 34 10 28.627 10 22Z"
+            stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M16 22H28M22 16V28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Brand name -->
+      <div class="text-center">
+        <h1 class="font-title font-bold leading-none" style="font-size: 42px; letter-spacing: -2px; color: var(--text)">
+          GymTrack
+        </h1>
+        <p class="mt-3 text-base" style="color: var(--text2); font-family: 'DM Sans', sans-serif; line-height: 1.5">
+          Cada rep conta.
+        </p>
+      </div>
+
+      <!-- Social proof pill -->
+      <div class="flex items-center gap-2.5 rounded-full px-4 py-2"
+        style="background: var(--surface); border: 1px solid var(--border)">
+        <div class="flex">
+          <div v-for="(c, i) in avatarColors" :key="i"
+            class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+            :style="`background: ${c}; margin-left: ${i ? '-8px' : '0'}; border: 2px solid var(--surface); z-index: ${3 - i}`">
+            {{ ['L','M','R'][i] }}
+          </div>
+        </div>
+        <span class="text-xs" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
+          +12k atletas ativos
+        </span>
+      </div>
+    </div>
+
+    <!-- Bottom CTAs -->
+    <div class="relative z-10 px-6 pb-12 flex flex-col gap-3">
+      <button @click="router.push('/cadastro')" class="btn-accent text-base py-4">
+        Criar conta
+      </button>
+      <button @click="router.push('/entrar')"
+        class="w-full py-4 rounded-2xl text-sm font-bold transition-all"
+        style="background: transparent; border: 1.5px solid var(--border); color: var(--text2); font-family: 'DM Sans', sans-serif">
+        Já tenho conta
+      </button>
+      <p class="text-center text-xs mt-1" style="color: var(--text3); font-family: 'DM Sans', sans-serif">
+        Ao entrar, você concorda com os Termos de Uso
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const avatarColors = ['#FF4D1C', '#8B5CF6', '#3B82F6']
+</script>
