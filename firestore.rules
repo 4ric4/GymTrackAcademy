@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Nicknames index — public read (availability check before auth),
+    // write only by authenticated users
+    match /nicknames/{nick} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Per-user data
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /programs/{programId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /sessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Inbox: owner can read/update/delete; any authenticated user can
+      // create a message (needed for the workout-sharing feature)
+      match /inbox/{messageId} {
+        allow read, update, delete: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null;
+      }
+    }
+  }
+}

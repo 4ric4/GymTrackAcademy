@@ -215,11 +215,13 @@
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
+import { useAuthStore } from '@/stores/authStore'
 import { programs } from '@/data/programs'
 import VideoModal from '@/components/VideoModal.vue'
 import AlternativesModal from '@/components/AlternativesModal.vue'
 
 const store = useWorkoutStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 const now = ref(Date.now())
@@ -305,8 +307,8 @@ function addRestTime(seconds) {
 function start(programId) { store.startSession(programId) }
 function finish() { showFinishConfirm.value = true }
 
-function confirmFinish() {
-  store.endSession()
+async function confirmFinish() {
+  await store.endSession(authStore.firebaseUser?.uid)
   showFinishConfirm.value = false
   router.push('/')
 }

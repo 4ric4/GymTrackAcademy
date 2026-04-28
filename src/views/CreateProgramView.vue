@@ -192,11 +192,13 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
+import { useAuthStore } from '@/stores/authStore'
 import { exercises as allExercises } from '@/data/exercises'
 
 const route = useRoute()
 const router = useRouter()
 const store = useWorkoutStore()
+const authStore = useAuthStore()
 
 const isEditing = computed(() => !!route.params.id)
 
@@ -252,9 +254,9 @@ const visibleGroups = computed(() => {
 
 const canSave = computed(() => form.value.name.trim().length > 0 && selectedIds.value.length > 0)
 
-function save() {
+async function save() {
   const id = existingCustom?.id || `custom_${Date.now()}`
-  store.saveCustomProgram({
+  await store.saveCustomProgram(authStore.firebaseUser?.uid, {
     id,
     name: form.value.name.trim(),
     focus: activeCategory.value || 'Personalizado',

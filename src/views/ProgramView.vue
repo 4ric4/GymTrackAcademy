@@ -121,10 +121,48 @@
           </div>
         </div>
 
-        <!-- Start button -->
-        <button @click="startSession" class="btn-accent">
-          {{ store.activeSession?.programId === program.id ? '⏱ Sessão Ativa — Ver' : '▶  Começar Treino' }}
-        </button>
+        <!-- Start + Share buttons -->
+        <div class="flex gap-3">
+          <button @click="startSession" class="btn-accent flex-1">
+            {{ store.activeSession?.programId === program.id ? '⏱ Sessão Ativa — Ver' : '▶  Começar Treino' }}
+          </button>
+          <button @click="showShareModal = true"
+            class="w-14 rounded-2xl flex items-center justify-center transition-all active:scale-95"
+            style="background: var(--surface); border: 1px solid var(--border)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color: var(--text2)">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Share modal -->
+        <Transition name="fade">
+          <div v-if="showShareModal"
+            class="fixed inset-0 z-50 flex items-end justify-center px-4 pb-8"
+            style="background: rgba(0,0,0,0.75); backdrop-filter: blur(8px)"
+            @click.self="showShareModal = false">
+            <div class="w-full max-w-sm rounded-3xl p-6" style="background: var(--surface)">
+              <h3 class="font-title font-bold text-lg mb-1" style="color: var(--text)">Compartilhar treino</h3>
+              <p class="text-sm mb-4" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
+                Digite o nickname de quem vai receber
+              </p>
+              <input v-model="shareNick" type="text" placeholder="@nickname" maxlength="20"
+                class="w-full rounded-2xl px-4 py-3 text-sm outline-none mb-3"
+                style="background: var(--surface2); color: var(--text); border: 1.5px solid var(--border); font-family: 'DM Sans', sans-serif"
+                @focus="$event.target.style.borderColor = 'var(--accent)'"
+                @blur="$event.target.style.borderColor = 'var(--border)'" />
+              <p v-if="shareError" class="text-xs mb-3" style="color: #ef4444; font-family: 'DM Sans', sans-serif">{{ shareError }}</p>
+              <p v-if="shareSuccess" class="text-xs mb-3" style="color: #22c55e; font-family: 'DM Sans', sans-serif">✓ Treino enviado!</p>
+              <div class="flex gap-3">
+                <button @click="showShareModal = false" class="btn-ghost flex-1 py-3 text-sm">Cancelar</button>
+                <button @click="sendShare" class="btn-accent flex-1 py-3 text-sm"
+                  :class="{ 'opacity-50': shareSending }">
+                  {{ shareSending ? 'Enviando...' : 'Enviar' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
 
       </div>
     </div>
@@ -146,6 +184,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
+import { useAuthStore } from '@/stores/authStore'
 import { programs } from '@/data/programs'
 import VideoModal from '@/components/VideoModal.vue'
 import AlternativesModal from '@/components/AlternativesModal.vue'
@@ -153,6 +192,34 @@ import AlternativesModal from '@/components/AlternativesModal.vue'
 const route = useRoute()
 const router = useRouter()
 const store = useWorkoutStore()
+const authStore = useAuthStore()
+
+const showShareModal = ref(false)
+const shareNick = ref('')
+const shareError = ref('')
+const shareSuccess = ref(false)
+const shareSending = ref(false)
+
+async function sendShare() {
+  shareError.value = ''
+  shareSuccess.value = false
+  const nick = shareNick.value.trim().toLowerCase()
+  if (!nick) { shareError.value = 'Digite um nickname.'; return }
+  const senderNick = authStore.userProfile?.nickname
+  if (!senderNick) { shareError.value = 'Você precisa ter um nickname para compartilhar.'; return }
+  if (nick === senderNick.toLowerCase()) { shareError.value = 'Você não pode compartilhar com si mesmo.'; return }
+  shareSending.value = true
+  try {
+    await store.shareWorkout(senderNick, nick, program.value)
+    shareSuccess.value = true
+    shareNick.value = ''
+    setTimeout(() => { showShareModal.value = false; shareSuccess.value = false }, 1500)
+  } catch (e) {
+    shareError.value = e.message === 'user-not-found' ? 'Nickname não encontrado.' : 'Erro ao enviar. Tente novamente.'
+  } finally {
+    shareSending.value = false
+  }
+}
 
 const isCustom = computed(() => store.isCustomProgram(route.params.id))
 const builtinProgram = computed(() => programs.find(p => p.id === route.params.id))
@@ -181,9 +248,9 @@ function startSession() {
   router.push('/sessao')
 }
 
-function confirmDelete() {
+async function confirmDelete() {
   if (confirm(`Excluir o treino "${program.value.name}"?`)) {
-    store.deleteCustomProgram(route.params.id)
+    await store.deleteCustomProgram(authStore.firebaseUser?.uid, route.params.id)
     router.replace('/treinos')
   }
 }

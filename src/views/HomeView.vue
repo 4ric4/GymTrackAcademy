@@ -6,11 +6,13 @@
       <div class="flex justify-between items-center">
         <div>
           <p class="gym-label text-sm">{{ greeting }},</p>
-          <h1 class="gym-title text-3xl leading-tight">GymTrack 👊</h1>
+          <h1 class="gym-title text-3xl leading-tight">{{ authStore.userProfile?.nickname || 'GymTrack' }} 👊</h1>
         </div>
         <RouterLink to="/perfil"
           class="w-11 h-11 rounded-2xl flex items-center justify-center font-title font-bold text-base text-white transition-all active:scale-95"
-          style="background: var(--accent); box-shadow: 0 0 16px rgba(255,77,28,0.35)">G</RouterLink>
+          style="background: var(--accent); box-shadow: 0 0 16px rgba(255,77,28,0.35)">
+          {{ (authStore.userProfile?.nickname?.[0] || 'G').toUpperCase() }}
+        </RouterLink>
       </div>
 
       <!-- Streak Card -->
@@ -172,9 +174,11 @@
 import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
+import { useAuthStore } from '@/stores/authStore'
 import { programs } from '@/data/programs'
 
 const store = useWorkoutStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 const greeting = computed(() => {

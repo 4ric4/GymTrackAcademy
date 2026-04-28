@@ -1,41 +1,27 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import {
+  collection, doc, setDoc, deleteDoc,
+  onSnapshot, serverTimestamp, query, orderBy,
+  getDocs, getDoc, addDoc,
+} from 'firebase/firestore'
+import { db } from '@/firebase'
 import { exercises as allExercises } from '@/data/exercises'
-import { programs as allPrograms } from '@/data/programs'
-
-const STORAGE_KEY = 'academia_tracker_v1'
-
-function loadState() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-  } catch { return {} }
-}
-
-function saveState(sessions, swaps, customPrograms, preferredProgramId) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ sessions, swaps, customPrograms, preferredProgramId }))
-}
+import { programs as allPrograms }   from '@/data/programs'
 
 export const useWorkoutStore = defineStore('workout', () => {
-  const stored = loadState()
+  const sessions         = ref([])
+  const exerciseSwaps    = ref({})
+  const customPrograms   = ref([])
+  const activeSession    = ref(null)
+  const preferredProgramId = ref(null)
+  const inboxMessages    = ref([])
+  const unsubscribers    = ref([])
 
-  const sessions = ref(stored.sessions || [])
-  const exerciseSwaps = ref(stored.swaps || {})
-  const customPrograms = ref(stored.customPrograms || [])
-  const activeSession = ref(null)
-  const preferredProgramId = ref(stored.preferredProgramId || allPrograms[0]?.id || null)
-
-  function persist() {
-    saveState(sessions.value, exerciseSwaps.value, customPrograms.value, preferredProgramId.value)
-  }
-
-  function setPreferredProgram(id) {
-    preferredProgramId.value = id
-    persist()
-  }
-
-  // ── Computed ──────────────────────────────────────────────────────────────
+  // ── Computed ────────────────────────────────────────────────────────────────
 
   const totalSessions = computed(() => sessions.value.length)
+  const unreadInboxCount = computed(() => inboxMessages.value.filter(m => !m.read).length)
 
   const currentWeekSessions = computed(() => {
     const now = new Date()
@@ -58,7 +44,6 @@ export const useWorkoutStore = defineStore('workout', () => {
     let count = 0
     let checkDate = new Date()
     checkDate.setHours(0, 0, 0, 0)
-
     for (const day of sortedDays) {
       const d = new Date(day)
       d.setHours(0, 0, 0, 0)
@@ -79,11 +64,57 @@ export const useWorkoutStore = defineStore('workout', () => {
     return map
   })
 
-  // ── Getters for exercises in a program (respects swaps) ───────────────────
+  // ── Firebase sync ───────────────────────────────────────────────────────────
+
+  function subscribeToUser(uid) {
+    unsubAll()
+
+    // Custom programs
+    const programsRef = collection(db, 'users', uid, 'programs')
+    const u1 = onSnapshot(programsRef, snap => {
+      customPrograms.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    })
+
+    // Sessions
+    const sessionsRef = query(
+      collection(db, 'users', uid, 'sessions'),
+      orderBy('startTime', 'desc')
+    )
+    const u2 = onSnapshot(sessionsRef, snap => {
+      sessions.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    })
+
+    // Inbox
+    const inboxRef = query(
+      collection(db, 'users', uid, 'inbox'),
+      orderBy('sentAt', 'desc')
+    )
+    const u3 = onSnapshot(inboxRef, snap => {
+      inboxMessages.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    })
+
+    unsubscribers.value = [u1, u2, u3]
+  }
+
+  function unsubAll() {
+    unsubscribers.value.forEach(u => u())
+    unsubscribers.value = []
+  }
+
+  function setPreferredProgramId(uid, id) {
+    preferredProgramId.value = id
+    setDoc(doc(db, 'users', uid), { preferredProgramId: id }, { merge: true })
+  }
+
+  function syncPreferredProgram(id) {
+    preferredProgramId.value = id
+  }
+
+  // ── Getters ──────────────────────────────────────────────────────────────────
 
   function getProgramExercises(programId) {
     const custom = customPrograms.value.find(p => p.id === programId)
-    if (custom) return custom.exercises.map(id => allExercises[id]).filter(Boolean)
+    if (custom) return (custom.exercises || []).map(id => allExercises[id]).filter(Boolean)
 
     const program = allPrograms.find(p => p.id === programId)
     if (!program) return []
@@ -100,7 +131,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     return (ex.alternatives || []).map(id => allExercises[id]).filter(Boolean)
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Session actions ──────────────────────────────────────────────────────────
 
   function startSession(programId) {
     activeSession.value = {
@@ -111,7 +142,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     }
   }
 
-  function endSession() {
+  async function endSession(uid) {
     if (!activeSession.value) return
     const end = new Date()
     const start = new Date(activeSession.value.startTime)
@@ -121,15 +152,21 @@ export const useWorkoutStore = defineStore('workout', () => {
       endTime: end.toISOString(),
       duration,
     }
-    sessions.value.unshift(session)
-    persist()
+
+    if (uid) {
+      await setDoc(
+        doc(db, 'users', uid, 'sessions', session.id),
+        { ...session, startTime: start, endTime: end }
+      )
+    } else {
+      sessions.value.unshift(session)
+    }
+
     activeSession.value = null
     return session
   }
 
-  function cancelSession() {
-    activeSession.value = null
-  }
+  function cancelSession() { activeSession.value = null }
 
   function toggleExercise(exerciseId) {
     if (!activeSession.value) return
@@ -141,50 +178,111 @@ export const useWorkoutStore = defineStore('workout', () => {
   function swapExercise(programId, originalId, newId) {
     if (!exerciseSwaps.value[programId]) exerciseSwaps.value[programId] = {}
     exerciseSwaps.value[programId][originalId] = newId
-    persist()
   }
 
   function resetSwap(programId, originalId) {
     if (exerciseSwaps.value[programId]) {
       delete exerciseSwaps.value[programId][originalId]
-      persist()
     }
   }
 
-  function deleteSession(id) {
+  async function deleteSession(uid, id) {
     sessions.value = sessions.value.filter(s => s.id !== id)
-    persist()
+    if (uid) await deleteDoc(doc(db, 'users', uid, 'sessions', id))
   }
 
-  // ── Custom programs ───────────────────────────────────────────────────────
+  // ── Custom programs ──────────────────────────────────────────────────────────
 
-  function saveCustomProgram(program) {
-    const idx = customPrograms.value.findIndex(p => p.id === program.id)
-    if (idx >= 0) customPrograms.value[idx] = program
-    else customPrograms.value.push(program)
-    persist()
+  async function saveCustomProgram(uid, program) {
+    const id = program.id || `custom_${Date.now()}`
+    const data = { ...program, id }
+    if (uid) {
+      await setDoc(doc(db, 'users', uid, 'programs', id), data)
+    } else {
+      const idx = customPrograms.value.findIndex(p => p.id === id)
+      if (idx >= 0) customPrograms.value[idx] = data
+      else customPrograms.value.push(data)
+    }
+    return id
   }
 
-  function deleteCustomProgram(id) {
+  async function deleteCustomProgram(uid, id) {
     customPrograms.value = customPrograms.value.filter(p => p.id !== id)
-    persist()
+    if (uid) await deleteDoc(doc(db, 'users', uid, 'programs', id))
   }
 
   function isCustomProgram(id) {
     return customPrograms.value.some(p => p.id === id)
   }
 
+  // ── Sharing ──────────────────────────────────────────────────────────────────
+
+  async function shareWorkout(senderNickname, recipientNickname, program) {
+    // Look up recipient UID
+    const nickDoc = await getDoc(doc(db, 'nicknames', recipientNickname.trim().toLowerCase()))
+    if (!nickDoc.exists()) throw new Error('user-not-found')
+
+    const recipientUid = nickDoc.data().uid
+    await addDoc(collection(db, 'users', recipientUid, 'inbox'), {
+      fromNickname: senderNickname,
+      program: {
+        name: program.name,
+        icon: program.icon,
+        color: program.color,
+        focus: program.focus,
+        exercises: program.exercises,
+        description: program.description || '',
+      },
+      sentAt: serverTimestamp(),
+      read: false,
+    })
+  }
+
+  function subscribeToInbox(uid, callback) {
+    const inboxRef = query(
+      collection(db, 'users', uid, 'inbox'),
+      orderBy('sentAt', 'desc')
+    )
+    return onSnapshot(inboxRef, snap => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    })
+  }
+
+  async function acceptWorkout(uid, message) {
+    const id = `shared_${Date.now()}`
+    const program = {
+      ...message.program,
+      id,
+      isCustom: true,
+      sharedFrom: message.fromNickname,
+    }
+    await setDoc(doc(db, 'users', uid, 'programs', id), program)
+    await markInboxRead(uid, message.id)
+    return id
+  }
+
+  async function declineWorkout(uid, messageId) {
+    await markInboxRead(uid, messageId)
+  }
+
+  async function markInboxRead(uid, messageId) {
+    const { updateDoc } = await import('firebase/firestore')
+    await updateDoc(doc(db, 'users', uid, 'inbox', messageId), { read: true })
+  }
+
+  function setPreferredProgram(id) {
+    preferredProgramId.value = id
+  }
+
   return {
-    // state
     sessions, activeSession, exerciseSwaps, customPrograms, preferredProgramId,
-    // computed
+    inboxMessages, unreadInboxCount,
     totalSessions, currentWeekSessions, totalMinutes, streak, sessionsByDate,
-    // getters
     getProgramExercises, getAlternatives,
-    // actions
     startSession, endSession, cancelSession, toggleExercise,
     swapExercise, resetSwap, deleteSession,
     saveCustomProgram, deleteCustomProgram, isCustomProgram,
-    setPreferredProgram,
+    subscribeToUser, unsubAll, setPreferredProgramId, setPreferredProgram, syncPreferredProgram,
+    shareWorkout, subscribeToInbox, acceptWorkout, declineWorkout, markInboxRead,
   }
 })

@@ -176,11 +176,12 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
-
-const router = useRouter()
+import { useAuthStore } from '@/stores/authStore'
 import { programs } from '@/data/programs'
 
+const router = useRouter()
 const store = useWorkoutStore()
+const authStore = useAuthStore()
 const viewDate = ref(new Date())
 const selectedDay = ref(null)
 
@@ -261,7 +262,7 @@ function formatTime(iso) {
 }
 function deleteSession(id) {
   if (confirm('Excluir esta sessão?')) {
-    store.deleteSession(id)
+    store.deleteSession(authStore.firebaseUser?.uid, id)
     selectedDay.value = null
   }
 }

@@ -30,18 +30,20 @@
         <NavBtn to="/treinos" :icon="iconGrid" label="Treinos" />
         <NavBtn to="/sessao" :icon="iconPlay" label="Sessão" :force-accent="!!store.activeSession" />
         <NavBtn to="/historico" :icon="iconClock" label="Histórico" />
-        <NavBtn to="/perfil" :icon="iconUser" label="Perfil" />
+        <NavBtn to="/perfil" :icon="iconUser" label="Perfil" :badge="store.unreadInboxCount || 0" />
       </div>
     </nav>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const store = useWorkoutStore()
+const authStore = useAuthStore()
 const route = useRoute()
 const showNav = computed(() => !route.meta?.noNav)
 const now = ref(Date.now())
@@ -49,6 +51,21 @@ let timer
 
 onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => clearInterval(timer))
+
+watch(() => authStore.firebaseUser, (user) => {
+  if (user) {
+    store.subscribeToUser(user.uid)
+  } else {
+    store.unsubAll()
+    store.syncPreferredProgram(null)
+  }
+}, { immediate: true })
+
+watch(() => authStore.userProfile, (profile) => {
+  if (profile?.preferredProgramId && !store.preferredProgramId) {
+    store.syncPreferredProgram(profile.preferredProgramId)
+  }
+}, { immediate: true })
 
 const elapsed = computed(() => {
   if (!store.activeSession) return ''
@@ -72,7 +89,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { computed } from 'vue'
 
 const NavBtn = {
-  props: ['to', 'icon', 'label', 'forceAccent'],
+  props: ['to', 'icon', 'label', 'forceAccent', 'badge'],
   setup(props) {
     const route = useRoute()
     const isActive = computed(() => {
@@ -87,7 +104,12 @@ const NavBtn = {
       :style="(isActive || forceAccent)
         ? 'color: var(--accent)'
         : 'color: var(--text3)'">
-      <span v-html="icon" class="leading-none"></span>
+      <span class="relative leading-none">
+        <span v-html="icon"></span>
+        <span v-if="badge > 0"
+          class="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+          style="background: #ef4444">{{ badge > 9 ? '9+' : badge }}</span>
+      </span>
       <span class="text-[10px] font-semibold leading-none" style="font-family: \'DM Sans\', sans-serif">{{ label }}</span>
     </RouterLink>
   `,
