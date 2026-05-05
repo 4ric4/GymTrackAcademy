@@ -106,8 +106,23 @@
         </div>
       </div>
 
+      <!-- IA Card -->
+      <RouterLink to="/ia"
+        class="flex items-center gap-4 rounded-2xl px-4 py-4 transition-all active:scale-95"
+        style="background: linear-gradient(135deg, #1a0a2e, #0d1a2e); border: 1px solid rgba(139,92,246,0.3)">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
+          style="background: linear-gradient(135deg, var(--accent), #C73000); box-shadow: 0 0 20px rgba(255,77,28,0.35)">🤖</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-title font-bold text-base leading-tight" style="color: #fff">Monte seu treino com IA</div>
+          <div class="text-xs mt-0.5" style="color: rgba(255,255,255,0.55); font-family: 'DM Sans', sans-serif">Descreva seu objetivo e a IA cria na hora</div>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color: rgba(255,255,255,0.4); shrink-0">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </RouterLink>
+
       <!-- Outros treinos -->
-      <div>
+      <div v-if="otherPrograms.length">
         <div class="flex justify-between items-center mb-3">
           <p class="font-title font-bold text-sm" style="color: var(--text)">Outros treinos</p>
           <RouterLink to="/treinos" class="text-xs font-semibold" style="color: var(--accent); font-family: 'DM Sans', sans-serif">
@@ -162,7 +177,7 @@
         <div class="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl"
           style="background: var(--surface2); border: 1px solid var(--border)">🏋️</div>
         <p class="text-sm text-center" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
-          Nenhuma sessão ainda.<br>Escolha um treino acima!
+          Nenhuma sessão ainda.<br>Crie um treino com a IA para começar!
         </p>
       </div>
 
@@ -175,7 +190,6 @@ import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
 import { useAuthStore } from '@/stores/authStore'
-import { programs } from '@/data/programs'
 
 const store = useWorkoutStore()
 const authStore = useAuthStore()
@@ -211,14 +225,14 @@ const formatVol = computed(() => {
   return count > 0 ? `${count}x` : '0x'
 })
 
-const allPrograms = computed(() => [...programs, ...store.customPrograms])
+const allPrograms = computed(() => store.customPrograms)
 
 const todayProgram = computed(() =>
-  allPrograms.value.find(p => p.id === store.preferredProgramId) || programs[0]
+  allPrograms.value.find(p => p.id === store.preferredProgramId) || allPrograms.value[0]
 )
 
 const otherPrograms = computed(() =>
-  programs.filter(p => p.id !== todayProgram.value?.id).slice(0, 4)
+  allPrograms.value.filter(p => p.id !== todayProgram.value?.id).slice(0, 4)
 )
 
 function programIcon(id) {

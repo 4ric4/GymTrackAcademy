@@ -4,7 +4,7 @@
 
       <!-- Back -->
       <div class="flex items-center gap-3">
-        <button @click="router.back()"
+        <button @click="router.push('/')"
           class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all active:scale-95"
           style="background: var(--surface); border: 1px solid var(--border); color: var(--text2)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -111,98 +111,57 @@
         <!-- Lista de programas para escolher -->
         <Transition name="slide-up">
           <div v-if="showProgramPicker" class="mt-3 flex flex-col gap-2">
-            <p class="text-xs font-bold uppercase tracking-widest mb-1"
-              style="color: var(--text3); font-family: 'DM Sans', sans-serif; letter-spacing: 1.5px">
-              Escolha um treino
-            </p>
+            <div v-if="!store.customPrograms.length" class="text-center py-6">
+              <p class="text-sm mb-3" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
+                Nenhum treino criado ainda
+              </p>
+              <RouterLink to="/ia" class="btn-accent" style="display: inline-flex; width: auto; padding: 10px 24px; font-size: 13px">
+                🤖 Montar com IA
+              </RouterLink>
+            </div>
 
-            <div v-for="p in allPrograms" :key="p.id"
-              @click="selectProgram(p.id)"
-              class="flex items-center gap-4 rounded-2xl px-4 py-3 cursor-pointer transition-all active:scale-[0.98]"
+            <div v-for="p in store.customPrograms" :key="p.id"
+              class="rounded-2xl overflow-hidden transition-all"
               :style="store.preferredProgramId === p.id
                 ? 'background: var(--accent-dim); border: 1.5px solid var(--accent)'
                 : 'background: var(--surface); border: 1.5px solid var(--border)'">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
-                :style="`background: ${p.color}20; border: 1.5px solid ${p.color}40`">
-                {{ p.icon }}
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="font-title font-bold text-sm truncate"
-                  :style="store.preferredProgramId === p.id ? 'color: var(--accent)' : 'color: var(--text)'">
-                  {{ p.name }}
+              <div @click="selectProgram(p.id)"
+                class="flex items-center gap-4 px-4 py-3 cursor-pointer">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
+                  :style="`background: ${p.color}20; border: 1.5px solid ${p.color}40`">
+                  {{ p.icon }}
                 </div>
-                <div class="text-xs mt-0.5" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
-                  {{ p.focus }} · {{ p.exercises.length }} exercícios
+                <div class="flex-1 min-w-0">
+                  <div class="font-title font-bold text-sm truncate"
+                    :style="store.preferredProgramId === p.id ? 'color: var(--accent)' : 'color: var(--text)'">
+                    {{ p.name }}
+                  </div>
+                  <div class="text-xs mt-0.5" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
+                    {{ p.focus }} · {{ p.exercises.length }} exercícios
+                  </div>
+                </div>
+                <div v-if="store.preferredProgramId === p.id"
+                  class="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                  style="background: var(--accent)">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </div>
               </div>
-              <div v-if="store.preferredProgramId === p.id"
-                class="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                style="background: var(--accent)">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <button @click="shareProgram(p)"
+                class="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold transition-all"
+                style="border-top: 1px solid var(--border); color: var(--accent); font-family: 'DM Sans', sans-serif">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-              </div>
+                Compartilhar treino
+              </button>
             </div>
 
-            <!-- Treinos customizados -->
-            <template v-if="store.customPrograms.length">
-              <p class="text-xs font-bold uppercase tracking-widest mt-1 mb-1"
-                style="color: var(--text3); font-family: 'DM Sans', sans-serif; letter-spacing: 1.5px">
-                Meus treinos
-              </p>
-              <div v-for="p in store.customPrograms" :key="p.id"
-                class="rounded-2xl overflow-hidden transition-all"
-                :style="store.preferredProgramId === p.id
-                  ? 'background: var(--accent-dim); border: 1.5px solid var(--accent)'
-                  : 'background: var(--surface); border: 1.5px solid var(--border)'">
-                <div @click="selectProgram(p.id)"
-                  class="flex items-center gap-4 px-4 py-3 cursor-pointer">
-                  <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
-                    :style="`background: ${p.color}20; border: 1.5px solid ${p.color}40`">
-                    {{ p.icon }}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="font-title font-bold text-sm truncate"
-                      :style="store.preferredProgramId === p.id ? 'color: var(--accent)' : 'color: var(--text)'">
-                      {{ p.name }}
-                    </div>
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-xs" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
-                        {{ p.exercises.length }} exercícios
-                      </span>
-                      <span class="text-[10px] px-1.5 py-0.5 rounded-full"
-                        style="background: rgba(245,158,11,0.12); color: var(--warn); border: 1px solid rgba(245,158,11,0.2); font-family: 'DM Sans', sans-serif">
-                        Personalizado
-                      </span>
-                    </div>
-                  </div>
-                  <div v-if="store.preferredProgramId === p.id"
-                    class="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                    style="background: var(--accent)">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                </div>
-                <!-- Share row -->
-                <button @click="shareProgram(p)"
-                  class="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold transition-all"
-                  style="border-top: 1px solid var(--border); color: var(--accent); font-family: 'DM Sans', sans-serif">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  Compartilhar treino
-                </button>
-              </div>
-            </template>
-
-            <RouterLink to="/criar-treino"
+            <RouterLink to="/ia"
               class="flex items-center justify-center gap-2 rounded-2xl py-4 mt-1 transition-all"
               style="border: 1.5px dashed var(--surface3); color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Criar novo treino
+              🤖 Gerar novo treino com IA
             </RouterLink>
           </div>
         </Transition>
@@ -344,7 +303,6 @@ import { ref, computed } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
 import { useAuthStore } from '@/stores/authStore'
-import { programs as builtinPrograms } from '@/data/programs'
 
 const router = useRouter()
 const route = useRoute()
@@ -354,11 +312,9 @@ const authStore = useAuthStore()
 const showProgramPicker = ref(route.query.mudar === '1')
 const selectedGoal = ref(authStore.userProfile?.goal || 'Ganhar massa')
 
-const allPrograms = builtinPrograms
-
 const currentProgram = computed(() => {
   const id = store.preferredProgramId
-  return [...builtinPrograms, ...store.customPrograms].find(p => p.id === id) || builtinPrograms[0]
+  return store.customPrograms.find(p => p.id === id) || store.customPrograms[0]
 })
 
 function selectProgram(id) {
@@ -372,10 +328,9 @@ function selectProgram(id) {
 }
 
 async function logout() {
-  await authStore.logout()
-  store.unsubAll()
   localStorage.removeItem('gymtrack_seen')
-  router.push('/login')
+  await authStore.logout()
+  router.replace('/login')
 }
 
 const shareModal = ref({ show: false, program: null, nick: '', error: '', success: false, sending: false })

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://localhost:3001/api/ai-treino -H 'Content-Type: application/json' -d '{\"message\":\"treino 3x semana iniciante\"}')"
+    ]
+  }
+}

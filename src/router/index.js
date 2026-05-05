@@ -15,6 +15,7 @@ const routes = [
   { path: '/historico',         name: 'historico', component: () => import('@/views/HistoryView.vue') },
   { path: '/mapa',              name: 'mapa',      component: () => import('@/views/MindMapView.vue') },
   { path: '/perfil',            name: 'perfil',    component: () => import('@/views/ProfileView.vue') },
+  { path: '/ia',               name: 'ia',        component: () => import('@/views/AIWorkoutView.vue') },
 ]
 
 const router = createRouter({
