@@ -52,9 +52,9 @@ let timer
 onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => clearInterval(timer))
 
-watch(() => authStore.firebaseUser, (user) => {
-  if (user) {
-    store.subscribeToUser(user.uid)
+watch(() => authStore.firebaseUser?.uid, (uid) => {
+  if (uid) {
+    store.subscribeToUser(uid)
   } else {
     store.unsubAll()
     store.syncPreferredProgram(null)

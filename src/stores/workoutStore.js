@@ -13,6 +13,7 @@ export const useWorkoutStore = defineStore('workout', () => {
   const sessions         = ref([])
   const exerciseSwaps    = ref({})
   const customPrograms   = ref([])
+  const programsLoaded   = ref(false)
   const activeSession    = ref(null)
   const preferredProgramId = ref(null)
   const inboxMessages    = ref([])
@@ -64,6 +65,16 @@ export const useWorkoutStore = defineStore('workout', () => {
     return map
   })
 
+  // Próximo programa na rotação baseado na última sessão
+  const nextProgramId = computed(() => {
+    if (!customPrograms.value.length) return null
+    const lastSession = sessions.value[0]
+    if (!lastSession) return customPrograms.value[0]?.id
+    const lastIdx = customPrograms.value.findIndex(p => p.id === lastSession.programId)
+    const nextIdx = (lastIdx + 1) % customPrograms.value.length
+    return customPrograms.value[nextIdx]?.id
+  })
+
   // ── Firebase sync ───────────────────────────────────────────────────────────
 
   function subscribeToUser(uid) {
@@ -73,6 +84,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     const programsRef = collection(db, 'users', uid, 'programs')
     const u1 = onSnapshot(programsRef, snap => {
       customPrograms.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      programsLoaded.value = true
     })
 
     // Sessions
@@ -99,6 +111,7 @@ export const useWorkoutStore = defineStore('workout', () => {
   function unsubAll() {
     unsubscribers.value.forEach(u => u())
     unsubscribers.value = []
+    programsLoaded.value = false
   }
 
   function setPreferredProgramId(uid, id) {
@@ -139,7 +152,20 @@ export const useWorkoutStore = defineStore('workout', () => {
       programId,
       startTime: new Date().toISOString(),
       completedExercises: [],
+      setLogs: {},
     }
+  }
+
+  function logSets(exerciseId, sets) {
+    if (!activeSession.value) return
+    activeSession.value.setLogs[exerciseId] = sets
+  }
+
+  function getExerciseLogs(exerciseId) {
+    return sessions.value
+      .filter(s => s.setLogs?.[exerciseId]?.length)
+      .slice(0, 5)
+      .map(s => ({ date: s.startTime, sets: s.setLogs[exerciseId] }))
   }
 
   async function endSession(uid) {
@@ -156,7 +182,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     if (uid) {
       await setDoc(
         doc(db, 'users', uid, 'sessions', session.id),
-        { ...session, startTime: start, endTime: end }
+        { ...session, startTime: start, endTime: end, setLogs: session.setLogs || {} }
       )
     } else {
       sessions.value.unshift(session)
@@ -275,11 +301,11 @@ export const useWorkoutStore = defineStore('workout', () => {
   }
 
   return {
-    sessions, activeSession, exerciseSwaps, customPrograms, preferredProgramId,
+    sessions, activeSession, exerciseSwaps, customPrograms, programsLoaded, preferredProgramId,
     inboxMessages, unreadInboxCount,
-    totalSessions, currentWeekSessions, totalMinutes, streak, sessionsByDate,
-    getProgramExercises, getAlternatives,
-    startSession, endSession, cancelSession, toggleExercise,
+    totalSessions, currentWeekSessions, totalMinutes, streak, sessionsByDate, nextProgramId,
+    getProgramExercises, getAlternatives, getExerciseLogs,
+    startSession, endSession, cancelSession, toggleExercise, logSets,
     swapExercise, resetSwap, deleteSession,
     saveCustomProgram, deleteCustomProgram, isCustomProgram,
     subscribeToUser, unsubAll, setPreferredProgramId, setPreferredProgram, syncPreferredProgram,

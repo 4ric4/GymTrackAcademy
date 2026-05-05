@@ -5,7 +5,7 @@
       <!-- Header -->
       <div class="sticky top-0 z-10 px-5 pt-4 pb-3 flex items-center gap-3"
         style="background: rgba(12,12,20,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border)">
-        <button @click="router.back()" style="color: var(--text2)">
+        <button @click="router.push('/')" style="color: var(--text2)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>

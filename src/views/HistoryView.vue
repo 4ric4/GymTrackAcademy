@@ -3,7 +3,7 @@
     <div class="max-w-md mx-auto px-5 pt-4 pb-6 flex flex-col gap-5">
 
       <div class="flex items-center gap-3">
-        <button @click="router.back()"
+        <button @click="router.push('/')"
           class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all active:scale-95"
           style="background: var(--surface); border: 1px solid var(--border); color: var(--text2)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -155,6 +155,21 @@
                   ⚡ {{ s.completedExercises.length }} exerc.
                 </span>
               </div>
+              <!-- Logs de séries -->
+              <div v-if="hasSetLogs(s)" class="mt-2 flex flex-col gap-1">
+                <div v-for="(sets, exId) in s.setLogs" :key="exId" class="flex items-start gap-2">
+                  <span class="text-[10px] font-semibold shrink-0 mt-0.5" style="color: var(--text3); font-family: 'DM Sans', sans-serif; min-width: 90px">
+                    {{ exName(exId) }}
+                  </span>
+                  <div class="flex flex-wrap gap-1">
+                    <span v-for="(set, si) in sets" :key="si"
+                      class="text-[10px] px-1.5 py-0.5 rounded-full"
+                      style="background: var(--surface2); color: var(--accent); font-family: 'DM Sans', sans-serif">
+                      {{ set.weight ? set.weight + 'kg×' : '' }}{{ set.reps }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -177,7 +192,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workoutStore'
 import { useAuthStore } from '@/stores/authStore'
-import { programs } from '@/data/programs'
+import { exercises as allExercises } from '@/data/exercises'
 
 const router = useRouter()
 const store = useWorkoutStore()
@@ -244,13 +259,19 @@ function nextMonth() {
 }
 
 function programIcon(id) {
-  return [...programs, ...store.customPrograms].find(p => p.id === id)?.icon || '💪'
+  return store.customPrograms.find(p => p.id === id)?.icon || '💪'
 }
 function programName(id) {
-  return [...programs, ...store.customPrograms].find(p => p.id === id)?.name || `Treino ${id}`
+  return store.customPrograms.find(p => p.id === id)?.name || `Treino`
 }
 function programColor(id) {
-  return [...programs, ...store.customPrograms].find(p => p.id === id)?.color || 'var(--accent)'
+  return store.customPrograms.find(p => p.id === id)?.color || 'var(--accent)'
+}
+function hasSetLogs(s) {
+  return s.setLogs && Object.values(s.setLogs).some(sets => sets?.length)
+}
+function exName(id) {
+  return allExercises[id]?.name || id
 }
 
 function formatDate(iso) {

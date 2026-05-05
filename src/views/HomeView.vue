@@ -1,6 +1,24 @@
 <template>
   <div class="screen-scroll">
-    <div class="max-w-md mx-auto px-5 pt-4 pb-6 flex flex-col gap-5">
+
+    <!-- Onboarding -->
+    <div v-if="store.programsLoaded && !store.customPrograms.length"
+      class="flex flex-col items-center justify-center gap-5 px-8"
+      style="min-height: 100vh">
+      <div class="text-6xl">🤖</div>
+      <div class="text-center">
+        <h2 class="gym-title text-2xl mb-2">Bem-vindo!</h2>
+        <p class="text-sm" style="color: var(--text2); font-family: 'DM Sans', sans-serif">
+          Crie seu primeiro treino com a IA para começar
+        </p>
+      </div>
+      <RouterLink to="/ia" class="btn-accent" style="width: auto; padding: 14px 36px">
+        Montar treino com IA 🤖
+      </RouterLink>
+    </div>
+
+    <!-- Conteúdo normal -->
+    <div v-else class="max-w-md mx-auto px-5 pt-4 pb-6 flex flex-col gap-5">
 
       <!-- Header -->
       <div class="flex justify-between items-center">
@@ -182,6 +200,7 @@
       </div>
 
     </div>
+
   </div>
 </template>
 
@@ -193,7 +212,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 const store = useWorkoutStore()
 const authStore = useAuthStore()
-const router = useRouter()
+const router = useRouter()  // ainda usado em quickStart
 
 const greeting = computed(() => {
   const h = new Date().getHours()
